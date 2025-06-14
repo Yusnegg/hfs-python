@@ -10,21 +10,22 @@
 import http.server
 import socketserver
 import threading
+import webbrowser
 from tkinter import *
 from tkinter import ttk
 from tkinter.messagebox import showerror
 import os
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-# Globals for server thread and instance
 server_thread = None
 httpd = None
+server_url = None
 
 def start_server(folder_path, port):
     """
     Starts the HTTP server to serve the selected folder on the given port.
     """
-    global server_thread, httpd
+    global server_thread, httpd, server_url
 
     try:
         port = int(port)
@@ -32,7 +33,6 @@ def start_server(folder_path, port):
         showerror("Invalid Port", "Please enter a valid numeric port.")
         return
 
-    # Change current working directory to the selected folder
     os.chdir(folder_path)
 
     handler = http.server.SimpleHTTPRequestHandler
@@ -47,12 +47,12 @@ def start_server(folder_path, port):
         print(f"🌐 Server running on http://localhost:{port}/")
         httpd.serve_forever()
 
-    # Start server in a separate thread to keep GUI responsive
     server_thread = threading.Thread(target=server_loop, daemon=True)
     server_thread.start()
 
-    # Update UI status
-    info_label.config(text=f"✅ Server is running at http://localhost:{port}/")
+    server_url = f"http://localhost:{port}/"
+    info_label.config(text=f"✅ Server is running at {server_url}")
+    open_btn.config(state=NORMAL)
 
 def on_drop(event):
     """
@@ -69,10 +69,17 @@ def on_drop(event):
     start_server(folder, port)
     print("📂 Dropped folder:", folder)
 
+def open_browser():
+    """
+    Opens the current server URL in the default web browser.
+    """
+    if server_url:
+        webbrowser.open(server_url)
+
 # ===== GUI Setup =====
 root = TkinterDnD.Tk()
 root.title("🔧 Simple HTTP Server by _bkir0")
-root.geometry("400x350")
+root.geometry("400x400")
 root.resizable(False, False)
 root.configure(bg="#f0f0f0")
 
@@ -90,7 +97,6 @@ port_frame = Frame(root, bg="#f0f0f0")
 port_frame.pack(pady=5)
 
 Label(port_frame, text="Port:", bg="#f0f0f0").pack(side=LEFT, padx=5)
-
 # Input field bound to port_var
 port_var = StringVar(value="8000")
 port_entry = Entry(port_frame, textvariable=port_var, width=10)
@@ -101,13 +107,16 @@ drop_zone = Label(root, text="📂 Drop a folder here", bg="lightgray", fg="blac
                   width=40, height=10, relief=RIDGE, borderwidth=2)
 drop_zone.pack(pady=15)
 
-# Enable drag & drop support
 drop_zone.drop_target_register(DND_FILES)
 drop_zone.dnd_bind('<<Drop>>', on_drop)
 
-# Info/status label
+# Info label
 info_label = Label(root, text="", fg="green", bg="#f0f0f0", font=("Segoe UI", 10, "italic"))
 info_label.pack(pady=10)
 
-# Start GUI loop
+# Open browser button (disabled until server starts)
+open_btn = Button(root, text="🌐 Open in browser", state=DISABLED, command=open_browser)
+open_btn.pack(pady=10)
+
+# Main loop
 root.mainloop()
