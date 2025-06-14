@@ -1,53 +1,113 @@
+# ===============================================================
+# Simple HTTP File Server with Drag & Drop GUI
+# Author: _bkir0
+# License: MIT
+# Description:
+#   This script provides a Tkinter-based GUI to drag & drop a folder
+#   and start an HTTP server on the specified port to serve its contents.
+# ===============================================================
+
 import http.server
 import socketserver
 import threading
 from tkinter import *
+from tkinter import ttk
+from tkinter.messagebox import showerror
 import os
 from tkinterdnd2 import DND_FILES, TkinterDnD
 
-PORT = 8000
+# Globals for server thread and instance
 server_thread = None
 httpd = None
 
-def start_server(folder_path):
+def start_server(folder_path, port):
+    """
+    Starts the HTTP server to serve the selected folder on the given port.
+    """
     global server_thread, httpd
 
+    try:
+        port = int(port)
+    except ValueError:
+        showerror("Invalid Port", "Please enter a valid numeric port.")
+        return
+
+    # Change current working directory to the selected folder
     os.chdir(folder_path)
 
     handler = http.server.SimpleHTTPRequestHandler
-    httpd = socketserver.TCPServer(("", PORT), handler)
+
+    try:
+        httpd = socketserver.TCPServer(("", port), handler)
+    except OSError:
+        showerror("Port Error", f"Port {port} is already in use.")
+        return
 
     def server_loop():
-        print(f"Server run port {PORT}")
+        print(f"🌐 Server running on http://localhost:{port}/")
         httpd.serve_forever()
 
+    # Start server in a separate thread to keep GUI responsive
     server_thread = threading.Thread(target=server_loop, daemon=True)
     server_thread.start()
 
+    # Update UI status
+    info_label.config(text=f"✅ Server is running at http://localhost:{port}/")
+
 def on_drop(event):
+    """
+    Triggered when a folder is dropped into the drop zone.
+    Validates the folder and starts the server.
+    """
     folder = event.data.strip("{}")
-    if not folder:
-        info_label.config(text="No files dropped")
+    port = port_var.get()
+
+    if not folder or not os.path.isdir(folder):
+        info_label.config(text="❌ Invalid folder dropped.")
         return
-    else:
-        info_label.config(text="Files dropped")
-        start_server(folder)
 
-    print("📂 Dropped files:", event.data)
+    start_server(folder, port)
+    print("📂 Dropped folder:", folder)
 
+# ===== GUI Setup =====
 root = TkinterDnD.Tk()
-root.title("Simple HFS")
-root.geometry("350x300")
+root.title("🔧 Simple HTTP Server by _bkir0")
+root.geometry("400x350")
 root.resizable(False, False)
+root.configure(bg="#f0f0f0")
 
-label = Label(root, text="Drop files here", bg="lightgray", width=40, height=10)
-label.pack(padx=10, pady=10)
+# Styling
+style = ttk.Style()
+style.configure("TLabel", font=("Segoe UI", 10))
+style.configure("TButton", font=("Segoe UI", 10))
 
-# Register label as a drop target
-label.drop_target_register(DND_FILES)
-label.dnd_bind('<<Drop>>', on_drop)
+# Title label
+title = Label(root, text="🚀 Drag & Drop a Folder to Start Server", bg="#f0f0f0", font=("Segoe UI", 12, "bold"))
+title.pack(pady=10)
 
-info_label = Label(root, text="", fg="green")
-info_label.pack()
+# Port input section
+port_frame = Frame(root, bg="#f0f0f0")
+port_frame.pack(pady=5)
 
+Label(port_frame, text="Port:", bg="#f0f0f0").pack(side=LEFT, padx=5)
+
+# Input field bound to port_var
+port_var = StringVar(value="8000")
+port_entry = Entry(port_frame, textvariable=port_var, width=10)
+port_entry.pack(side=LEFT)
+
+# Drop area
+drop_zone = Label(root, text="📂 Drop a folder here", bg="lightgray", fg="black",
+                  width=40, height=10, relief=RIDGE, borderwidth=2)
+drop_zone.pack(pady=15)
+
+# Enable drag & drop support
+drop_zone.drop_target_register(DND_FILES)
+drop_zone.dnd_bind('<<Drop>>', on_drop)
+
+# Info/status label
+info_label = Label(root, text="", fg="green", bg="#f0f0f0", font=("Segoe UI", 10, "italic"))
+info_label.pack(pady=10)
+
+# Start GUI loop
 root.mainloop()
