@@ -1,0 +1,40 @@
+# Entorno virtual
+venv/
+ENV/
+env/
+.venv/
+
+# Archivos de Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Archivos de configuración de VS Code
+.vscode/
+
+# Archivos de logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.swp
+*.bak
+
+# Archivos de dependencias
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de pruebas
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+.cache/
+.mypy_cache/
+.pyre/
+.pytype/
